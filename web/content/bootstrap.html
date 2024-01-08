@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+
+<head> 
+  <link rel="shortcut icon" href="#">
+</head>
+
+<body>
+  <link rel="stylesheet" href="../assets/styles/bootstrap.css" />
+  <h1>Mermaid Tester</h1>
+  Mermaid
+  <br />
+  <div id="toolbar">
+          Parser type: <select id="type">
+            <option value="lr0">LR(0)</option>
+            <option value="slr" selected>SLR(1)</option>
+            <option value="lalr">LALR(1)</option>
+            <option value="lr">LR(1)</option>
+            <option value="ll">LL(1)</option>
+          </select>
+    <button id="grammarButton">Process Grammar</button>
+
+    <button id="parseButton">Parse Input</button>
+    <button id="svgButton">Generate SVG</button>
+    <button id="mermaidButton">Run MERMAID</button>
+    <button id="reverseButton">JSON to Input</button>
+  </div>
+  <div id="gen_out"></div>
+  <div id="editors">
+    <div class="editorBox"> 
+      <h2>Grammar</h2>
+      <textarea id="grammar">
+%start prog
+
+%ebnf
+
+%options token-stack
+
+%%
+
+prog
+: STRING NAME STRING DESC STRING plcs cmps ENDOFFILE
+{
+return {
+'id': $1,
+'name': $3,
+'description': $5,
+'places': $plcs,
+'components': $cmps
+}
+}
+;
+
+plcs
+: plcs plc
+{
+$plcs.push($plc); $$ = $plcs;
+}
+|
+{
+$$ = []
+}
+;
+
+cmps
+: cmps cmp
+{
+$cmps.push($cmp); $$ = $cmps;
+}
+|
+{
+$$ = [];
+}
+;
+
+plc
+: PLACE NUM STRING STRING affs
+{
+$$ = {
+'id': $2,
+'name': $3,
+'description': $4,
+'affordances': $affs
+}
+}
+| PLACE NUM STRING affs
+{
+$$ = {
+'id': $2,
+'name': $3,
+'affordances': $affs
+}
+}
+;
+
+cmp
+: COMP NUM STRING affs
+{
+$$ = {
+'id': $2,
+'name': $3,
+'affordances': $affs
+}
+}
+;
+
+affs
+: affs aff
+{
+$affs.push($aff); $$ = $affs;
+}
+|
+{
+$$ = []
+}
+;
+
+aff
+: LABEL STRING props_aff
+{
+$$ = {
+"label": $2,
+"props": $props_aff
+}
+}
+;
+
+props_aff
+: props_aff prop_aff
+{
+$props_aff.push($prop_aff); $$ = $props_aff;
+}
+|
+{
+$$ = [];
+}
+;
+
+prop_aff
+: '"' STRING '"'
+{
+$$ = {
+'type': 'copy',
+'value': $2
+}
+}
+|'"' '"'
+{
+$$ = {
+'type': 'copy',
+'value': ''
+}
+}
+| '(' COMP NUM ')'
+{
+$$ = {
+'type': 'inlineCmp',
+'value': $3
+}
+}
+| DEV STRING
+{
+$$ = {
+'type': 'drivers',
+'value': $2
+}
+}
+| '[' COMP NUM ']'
+{
+$$ = {
+'type': 'externCmp',
+'value': $3
+}
+}
+| INTLINK PLACE NUM
+{
+$$ = {
+'type': 'placeLnk',
+'value': $3
+}
+}
+| TMNLINK STRING
+{
+$$ = {
+'type': 'tmnLnk',
+'value': $2
+}
+}
+| EXTLINK STRING
+{
+$$ = {
+'type': 'extLnk',
+'value': $2
+}
+}
+;
+      </textarea>
+    </div>
+
+    <div class="editorBox">
+      <h2>Input</h2>
+      <textarea id="parseInput">
+        breadboard lR
+        name DID Directory v1
+        description DID Directory v1
+        
+        flow-1
+        Claim Flow
+        Claim Flow
+        
+        place 1
+        Landing Page
+        The first page a user sees when they visit the site. It displays a
+        searchable list of DID methods
+        --Search DID methods
+        :> search
+        --Number of DID Methods
+        -> place 3
+        --DID Listing Cards
+        (component 1)
+        -> place 2
+        
+        place 2
+        DID Listing Details
+        The page a user sees when they click on a DID Listing Card
+        --Method Name
+        --DID Listing Details
+        (component 2)
+        --Claimant
+        -> place 7
+        --Claim Method
+        ""
+        -> place 3
+        --Edit
+        -> place 6
+        place 3
+        Claim Method
+        --Claim [Method Name]
+        --Method Claimed copy
+        ""
+        --Claimant Name-ID
+        -> place 7
+        --W3C Registry Contact Email
+        --Claim method copy
+        ""
+        --Login (to use existing account)
+        ""
+        -> place 4
+        --Switch Accounts
+        -> place 4
+        --Claim by email
+        "Send email and claim from current account ..."
+        -> place 5
+        --Claim using current account
+        "Claim from current account ..."
+        -> place 2
+        place 4
+        Login - Sign Up
+        --Sign Up - Login Selector
+        drivers: "..."
+        --Use Github
+        -> "Github Sign In"
+        --Email address field
+        --login by email
+        "login copy"
+        -> place
+        --Sign up by email
+        "sign up copy"
+        -> place 5
+        --cancel
+        -> -1
+        place 5
+        Email Verification Modal
+        -- Purpose of verification
+        "login - direct claim"
+        -- Token sent time
+        -- Resend token
+        drivers: []
+        -- Input Field
+        "token"
+        -- "Submit"
+        -> place 6
+        place 6
+        Edit DID Listing Details
+        -- Method Name
+        -- Editable DID Listing Details
+        (component 3)
+        -- Cancel
+        -> place 2
+        place 7
+        Profile
+        -- Name
+        -- Emails
+        -- Avatar
+        -- Organization
+        -- Edit Profile
+        -> place 8
+        place 8
+        Editable Profile
+        -- Name
+        
+        component 1
+        DID Listing Card
+        -- Abbreviation / Logo
+        -- Name
+        -> place 2
+        -- Short description
+        ""
+        -- Method specification copy
+        -- Specification URL
+        >> spec url
+        -- Verifiable Data Registry
+        "Bitcoin"
+        -- Claimed - Unclaimed badge
+        -- Listing Permalink
+        component 2
+        DID Listing Details
+        -- Abbreviation - Logo
+        -- Method Name
+        -- Verifiable Data Registry
+        -- Specification
+        -- Contact Name
+        -- Contact Email
+        -- W3C Registry Status
+        -- Claimed - Unclaimed
+        -- Short Description
+        -- Long Description
+        -- W3C Registry Delta
+        component 3
+        Editable DID Listing Details
+        -- Abbreviation - Logo
+        -- Select Image
+        >> file explorer
+        -- Select Logo Bg Color
+        -> TODO: Color Selector
+        -- TextInput: Verifiable Data Registry
+        -- TextInput: Contact Name
+        -- Claimed - Unclaimed
+        -- TextInput: Short Description
+        -- MdEditor: Long Description
+    </textarea>
+    </div>
+    <div class="editorBox">
+      <h2>Parsed JSON</h2>
+      <textarea id="parseOutput"></textarea>
+    </div>
+    <div id="out">
+    </div>
+    <div id="table">
+    </div>
+  </div>
+  <script src="../assets/js/jquery.js"></script>
+  <script src="../assets/js/json2.js"></script>
+  <script src="../assets/js/es5.js"></script>
+  <script src="../assets/js/jison.js"></script>
+  <script src="../assets/js/usf.js"></script>
+  <script src="../assets/js/bootstrap.js"></script>
+</body>
+
+</html>

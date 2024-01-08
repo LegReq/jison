@@ -1,0 +1,9 @@
+textarea { 
+  width: 400px;
+  height: 400px;
+  border: thick red solid;
+}
+
+div.editorBox {
+  display:inline-block;
+}
